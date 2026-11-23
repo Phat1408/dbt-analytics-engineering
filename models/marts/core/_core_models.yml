@@ -2,29 +2,95 @@ version: 2
 
 models:
   - name: fact_orders
+    semantic_model: 
+      enabled: true
+      name: orders
+
+    agg_time_dimension: order_date
+
     description: Analytical orders data.
     columns:
       - name: order_id
         description: Primary key of the orders.
+        entity:
+          type: primary
+          name: order
+
       - name: customer_id
         description: Foreign key of customer_id  at dim_customers.
+        entity:
+          type: foreign
+          name: customer
+
       - name: order_date
         description: Date that order was placed by the customer.
+        granularity: day
+        dimension:
+          type: time
+
       - name: cash_amount
         description: Total amount paid in cash by the customer with "success" payment status.
+
       - name: credit_amount
         description: Total amount paid in credit by the customer with "success" payment status.
+
       - name: total_amount
         description: Total amount paid by the customer with "success" payment status.
+
       - name: is_order_completed
         description: "{{ doc('is_order_completed_docblock') }}"
+        dimension:
+          type: categorical
+
+    metrics:
+      - name: order_total
+        description: "Sum of total order amount"
+        label: Order Total
+        type: simple
+        agg: sum
+        expr: total_amount
+
+      - name: order_count
+        description: "Count of orders"
+        label: Orders
+        type: simple
+        agg: sum
+        expr: 1
+
+      - name: completed_orders
+        description: "Count of orders that were delivered"
+        label: Delivered Orders
+        type: simple
+        agg: sum
+        expr: 1
+        filter: |
+          {{ Dimension('order_id__is_order_completed') }} = true
 
   - name: dim_customers
     description: Customer data. It allows you to analyze customers perspective linked facts.
     columns:
       - name: customer_id
         description: Primary key of the customers.
+        entity:
+          type: primary
+          name: customer
+
       - name: first_name
         description: Customer first name.
+        dimension:
+          type: categorical
+          name: first_name
+
       - name: last_name
         description: Customer last name.
+        dimension:
+          type: categorical
+          name: last_name
+
+  - name: time_spine_daily
+    time_spine:
+      standard_granularity_column: order_date
+    columns:
+      - name: order_date
+        granularity: day
+
